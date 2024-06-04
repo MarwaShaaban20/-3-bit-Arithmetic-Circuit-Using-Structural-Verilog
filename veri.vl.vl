@@ -1,0 +1,214 @@
+/*
+ Component=total 12 
+ (3)xor
+ (3)full_adder 
+ (6)mux_4x1 per bit
+*/
+//half adder using 1(xor)gate , 1(and)gate
+module half_adder(output sum, output carry, input a, input b);
+    xor(sum, a, b);
+    and(carry, a, b);
+endmodule
+//one bit full adder using 2(half=adder) gate , 1(or)gate
+module full_adder(output sum, output carry, input x, input y, input z);
+    wire s1, c1, c2;
+    half_adder h1(s1, c1, x, y);
+    half_adder h2(sum, c2, s1, z);
+    or(carry, c1, c2);
+endmodule
+//4x1 multiplexer-1bit using 2(not)gate, 4(and)gates, 1(or)gate
+module mux_4x1(output y, input i0, input i1, input i2, input i3, input s0, input s1);
+    not n0(ns0, s0);//not s0
+    not n1(ns1, s1);//not s1
+    and(a1, i0, ns0, ns1);//output=i0 -> when s0 =0 & s1 =0
+    and(a2, i1, s0, ns1);//output=i1 -> when s0 =1 & s1 =0
+    and(a3, i2, ns0, s1);//output=i2 -> when s0 =0 & s1 =
+    and(a4, i3, s0, s1);//output=i3 -> when s0 =1 & s1 =1
+    or(y, a1, a2, a3, a4);
+endmodule
+
+module OP(output c2, output sum0, output sum1, output sum2, input a0, input a1, input a2, input b0, input b1, input b2, input s0, input s1);
+    reg x = 1; //1st and 3tr input in  first mux_4x1 that we will select when selection=00 so output = 1
+    reg y = 0;//1st and 3tr input in  seconde and thired mux_4x1 that we will select when selection=00 so output = 0
+  
+    mux_4x1 m1(outmux, x, b0, b0, x, s0, s1);//output depend on selector 
+    mux_4x1 m2(outmux2, a0, a0, a0, b0, s0, s1);
+    xor X1(outxor1, outmux2, s1);//take output of mux2 and s1 ->when s1=0 ouput=input ,when s1=1 ouput=bar of output 
+    full_adder fa(sum0, c0, outmux, outxor1, s1);//take output mux and xor as input and s1 as cin  ,output is sum0 and c0
+    mux_4x1 m3(outmux3, y, b1, b1, y, s0, s1);
+    mux_4x1 m4(outmux4, a1, a1, a1, b1, s0, s1);
+    xor X2(outxor2, outmux4, s1);//take output of mux4 and s1 ->when s1=0 ouput=input ,when s1=1 ouput=bar of output 
+    full_adder fa1(sum1, c1, outmux3, outxor2, c0);//take output mux3 and xor2 as input and c0 prev carry,output is sum1 and c1
+    mux_4x1 m5(outmux5, y, b2, b2, y, s0, s1);
+    mux_4x1 m6(outmux6, a2, a2, a2, b2, s0, s1);
+    xor X3(outxor3, outmux6, s1);//take output of mux6 and s1 ->when s1=0 ouput=input ,when s1=1 ouput=bar of output 
+    full_adder fa2(sum2, c2, outmux5, outxor3, c1);//take output mux5 and xor3 as input and c1 prev carry,output is sum2 and c2
+endmodule
+
+`timescale 1ns/1ps
+
+//Test Bench of the whole circuit
+module testFull_tb;
+    reg [2:0] a;  //input in 3-bits
+    reg [2:0] b;  //input in 3-bits
+    reg s0, s1;  //s0 , s1 ---> selectors
+    wire sum0, sum1, sum2, c2;//output
+
+    // Instantiate the module under test
+    OP op(c2, sum0, sum1, sum2, a[0], a[1], a[2], b[0], b[1], b[2], s0, s1);
+
+    // Clock generation (unused in this example)
+    reg clk = 0;
+    always #5 clk = ~clk;
+
+    // Test stimulus
+    initial begin
+        $monitor("Time=%0t: a=%b%b%b b=%b%b%b s=%b%b c2=%b sum2=%b sum1=%b sum0=%b",
+            $time, a[2], a[1], a[0], b[2], b[1], b[0], s1, s0, c2, sum2, sum1, sum0);
+            
+        // A+1 TEST CASES
+        // Test Case 1 G=001
+        a = 3'b000; b = 3'b000; s0 = 0; s1 = 0;
+        #10;
+
+        // Test Case 2 G=010
+        a = 3'b001; b = 3'b000; s0 = 0; s1 = 0;
+        #10;
+
+        // Test Case 3 G=011
+        a = 3'b010; b = 3'b000; s0 = 0; s1 = 0;
+        #10;
+
+        // Test Case 4 G=100
+        a = 3'b011; b = 3'b000; s0 = 0; s1 = 0;
+        #10;
+
+        // Test Case 5 G=101
+        a = 3'b100; b = 3'b000; s0 = 0; s1 = 0;
+        #10;
+
+        // Test Case 6 G=110
+        a = 3'b101; b = 3'b000; s0 = 0; s1 = 0;
+        #10;
+
+        // Test Case 7 G=111
+        a = 3'b110; b = 3'b000; s0 = 0; s1 = 0;
+        #10;
+// Test Case 8  G=000
+        a = 3'b111; b = 3'b000; s0 = 0; s1 = 0;
+        #10;
+         
+// Test Case 8  G=000
+        a = 3'b111; b = 3'b000; s0 = 0; s1 = 0;
+        #10;
+         
+         //A+B
+        // Test Case 1  G=000
+        a = 3'b000; b = 3'b000; s0 = 1; s1 = 0;
+        #10;
+        // Test Case 2 G=001
+        a = 3'b000; b = 3'b001; s0 = 1; s1 = 0;
+        #10;
+        
+        // Test Case 3 G=010
+        a = 3'b000; b = 3'b010; s0 = 1; s1 = 0;
+        #10;
+        // Test Case 4 G=011
+        a = 3'b000; b = 3'b011; s0 = 1; s1 = 0;
+        #10;
+        // Test Case 5 G=100
+        a = 3'b000; b = 3'b100; s0 = 1; s1 = 0;
+        #10;
+        // Test Case 6 G=101
+        a = 3'b000; b = 3'b101; s0 = 1; s1 = 0;
+        #10;
+        // Test Case 7 G=110
+        a = 3'b000; b = 3'b110; s0 = 1; s1 = 0;
+        #10;
+        // Test Case 8 G=111
+        a = 3'b000; b = 3'b111; s0 = 1; s1 = 0;
+        #10;
+        // Test Case 9 G=001
+        a = 3'b001; b = 3'b000; s0 = 1; s1 = 0;
+        #10;
+        // Test Case 10 G=010
+        a = 3'b001; b = 3'b001; s0 = 1; s1 = 0;
+        #10;
+        // Test Case 11 G=011
+        a = 3'b001; b = 3'b010; s0 = 1; s1 = 0;
+        #10;
+        // Test Case 12 G=100
+        a = 3'b001; b = 3'b011; s0 = 1; s1 = 0;
+        #10;
+        
+        //B-A
+        // Test Case 1 G=000
+        a = 3'b000; b = 3'b000; s0 = 0; s1 = 1;
+        #10;
+        // Test Case 2 G=001
+        a = 3'b000; b = 3'b001; s0 = 0; s1 = 1;
+        #10;
+        // Test Case 3 G=010
+        a = 3'b000; b = 3'b010; s0 = 0; s1 = 1;
+        #10;
+        // Test Case 4 G=011
+        a = 3'b000; b = 3'b011; s0 = 0; s1 = 1;
+        #10;
+        // Test Case 5 G=100
+        a = 3'b000; b = 3'b100; s0 = 0; s1 = 1;
+        #10;
+        // Test Case 6 G=101
+        a = 3'b000; b = 3'b101; s0 = 0; s1 = 1;
+        #10;
+        // Test Case 7 G=110
+        a = 3'b000; b = 3'b110; s0 = 0; s1 = 1;
+        #10;
+        // Test Case 8 G=111
+        a = 3'b000; b = 3'b111; s0 = 0; s1 = 1;
+        #10;
+        // Test Case 9 G=111
+        a = 3'b001; b = 3'b000; s0 = 0; s1 = 1;
+        #10;
+        // Test Case 10 G=000
+        a = 3'b001; b = 3'b001; s0 = 0; s1 = 1;
+        #10;
+        // Test Case 11 G=001
+        a = 3'b001; b = 3'b010; s0 = 0; s1 = 1;
+        #10;
+        // Test Case 12 G=010
+        a = 3'b001; b = 3'b011; s0 = 0; s1 = 1;
+        #10;
+        
+        
+        // 1-B TEST CASES
+        // Test Case 1 G=001
+        a = 3'b000; b = 3'b000; s0 = 1; s1 = 1;
+        #10;
+
+        // Test Case 2 G=000
+        a = 3'b000; b = 3'b001; s0 = 1; s1 = 1;
+        #10;
+
+        // Test Case 3 G=111
+        a = 3'b000; b = 3'b010; s0 = 1; s1 = 1;
+        #10;
+        // Test Case 4 G=110
+        a = 3'b000; b = 3'b011; s0 = 1; s1 = 1;
+        #10;
+        // Test Case 5 G=101
+        a = 3'b000; b = 3'b100; s0 = 1; s1 = 1;
+        #10;
+        // Test Case 6 G=100
+        a = 3'b000; b = 3'b101; s0 = 1; s1 = 1;
+        #10;
+        // Test Case 7 G=011
+        a = 3'b000; b = 3'b110; s0 = 1; s1 = 1;
+        #10;
+        // Test Case 8 G=010
+        a = 3'b000; b = 3'b111; s0 = 1; s1 = 1;
+        #10;
+        // Terminate simulation
+        $finish;
+    end
+endmodule
+
